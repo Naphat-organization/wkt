@@ -1,0 +1,19 @@
+
+@import "tailwindcss/base";
+
+@import "tailwindcss/components";
+
+@import "tailwindcss/utilities";
+
+
+@layer components{
+  .mapButton {
+    @apply hover:font-bold hover:scale-105 h-9 w-32 border border-black bg-white rounded-lg mb-2 text-lg;
+  }
+  .HeaderButton {
+    @apply hover:font-bold hover:scale-105 h-12 w-32 border-2 border-red-500 bg-white rounded-lg mb-6 text-lg;
+  }
+  .center {
+    @apply flex items-center justify-center;
+  }
+}
