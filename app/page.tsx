@@ -1,11 +1,16 @@
 "use client";
 
-import React, {useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 export default function Home() {
-
   const [selectedFile, setSelectedFile] = useState<File>();
+  const [fileContent, setFileContent] = useState<string>('');
   const [time, settime] = useState(0);
+  const mapping = useRef(false);
+  const zoomCount = useRef(0);
+  const Scale = useRef(0);
+  const MinX = useRef(0);
+  const MaxY = useRef(0);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -15,6 +20,7 @@ export default function Home() {
 
       reader.onload = (e) => {
         const content = e.target?.result as string;
+        setFileContent(content);
         drawPolygons(content);
       };
       reader.readAsText(file);
@@ -23,7 +29,6 @@ export default function Home() {
 
   const drawPolygons = (wktString: string) => {
     let start = performance.now();
-
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
     const context = canvas.getContext('2d');
 
@@ -32,11 +37,11 @@ export default function Home() {
     let maxX = 0;
     let maxY = 0;
     let maxXY = 0;
-    let scale: any;
 
     if (context) {
       context.clearRect(0, 0, canvas.width, canvas.height);
       const polygons = wktString.split('\n');
+
       polygons.forEach((polygonWKT) => {
         const coordinates = polygonWKT.match(/(\d+\.\d+)\s(\d+\.\d+)/g);
         if (coordinates) {
@@ -62,11 +67,26 @@ export default function Home() {
             }
           });
         }
-
-        maxXY = Math.trunc(Math.max(maxX - minX, maxY - minY))
-        scale = Math.floor(600 / maxXY) - 2;
       });
+      maxXY = Math.trunc(Math.max(maxX - minX, maxY - minY));
+      Scale.current = Math.floor(600 / maxXY) - 2;
+      MinX.current = minX;
+      MaxY.current = maxY;
+      zoomCount.current = 0;
+      drawMap(wktString, minX, maxY, Scale.current);
+    }
 
+    let timeTaken: number = parseFloat((performance.now() - start).toFixed(2));
+    settime(timeTaken);
+  };
+
+  const drawMap = (wktString: string, minX: any, maxY: any, scaleData: number) => {
+    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+    const context = canvas.getContext('2d');
+
+    if (context) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      const polygons = wktString.split('\n');
 
       polygons.forEach((polygonWKT) => {
         const coordinates = polygonWKT.match(/(\d+\.\d+)\s(\d+\.\d+)/g);
@@ -74,9 +94,8 @@ export default function Home() {
           context.beginPath();
           coordinates.forEach((coordinate: string, index: number) => {
             const [x, y] = coordinate.split(' ').map(parseFloat);
-            const scaleX = parseFloat(((x - minX) * scale).toFixed(5));
-            const scaleY = parseFloat((((-y + maxY) * scale).toFixed(5)))
-
+            const scaleX = parseFloat(((x - minX) * scaleData).toFixed(5));
+            const scaleY = parseFloat((((-y + maxY) * scaleData).toFixed(5)))
             if (index === 0) {
               context.moveTo(scaleX, scaleY);
             } else {
@@ -87,41 +106,81 @@ export default function Home() {
         context.closePath();
         context.stroke();
       });
-    };
-    let timeTaken:number = parseFloat((performance.now() - start).toFixed(2));
-    settime(timeTaken);
-  }
+      mapping.current = true;
+    }
+  };
+
+  const zoomIn = () => {
+    if (zoomCount.current < 10 && (mapping.current || zoomCount.current !== 0)) {
+      Scale.current *= 1.1;
+      zoomCount.current += 1;
+      MinX.current += 1;
+      MaxY.current -= 1;
+    }
+    if (mapping.current) {
+      drawMap(fileContent, MinX.current, MaxY.current, Scale.current);
+    }
+  };
+
+  const zoomOut = () => {
+    if (zoomCount.current > -10 && (mapping.current || zoomCount.current !== 0)) {
+      Scale.current *= 0.9;
+      zoomCount.current -= 1;
+      MinX.current -= 1;
+      MaxY.current += 1;
+    }
+
+    if (mapping.current) {
+      drawMap(fileContent, MinX.current, MaxY.current, Scale.current);
+    }
+  };
 
   return (
     <div className='h-screen center'>
 
       <div className='h-[800px] w-[800px] p-9 border border-black bg-orange-300 center'>
+
         <div>
-          <label>
-            <input
-              type="file"
-              accept=".wkt"
-              hidden
-              onChange={handleFileChange}
-            />
-            <div className="HeaderButton flex items-center justify-center border-2 cursor-pointer">
-              <span>Select WKT</span>
+          <div className='flex justify-between items-center'>
+            <label>
+              <input
+                type="file"
+                accept=".wkt"
+                hidden
+                onChange={handleFileChange}
+              />
+              <div className="HeaderButton flex items-center justify-center border-2 cursor-pointer">
+                <span>Select WKT</span>
+              </div>
+            </label>
+
+            <div>
+              <button className='zoomButton mx-2' onClick={zoomIn}>+</button>
+              <button className='zoomButton' onClick={zoomOut}>-</button>
             </div>
-          </label>
-
+          </div>
           {selectedFile != undefined ?
-            <><div>Selected File: {selectedFile.name} </div><div>Total time taken : {time} milliseconds</div></>
+            <>
+              <div>Selected File: {selectedFile.name} </div>
+              <div>Total time taken : {time} milliseconds</div>
+            </>
             : null}
-
-
+            
           <canvas id="canvas" width="600" height="600" className='border border-black bg-white center mt-5'></canvas>
-          {
-          }
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
 
 
 
