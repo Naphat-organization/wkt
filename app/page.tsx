@@ -6,11 +6,12 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File>();
   const [fileContent, setFileContent] = useState<string>('');
   const [time, settime] = useState(0);
-  const mapping = useRef(false);
+  const isMap = useRef(false);
   const zoomCount = useRef(0);
   const Scale = useRef(0);
   const MinX = useRef(0);
   const MaxY = useRef(0);
+  const scaleRef = useRef(0);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -68,14 +69,14 @@ export default function Home() {
           });
         }
       });
-      maxXY = Math.trunc(Math.max(maxX - minX, maxY - minY));
-      Scale.current = Math.floor(600 / maxXY) - 2;
+      maxXY = Math.max(maxX - minX, maxY - minY);
+      Scale.current = 600 / maxXY;
+      scaleRef.current = Scale.current;
       MinX.current = minX;
       MaxY.current = maxY;
       zoomCount.current = 0;
       drawMap(wktString, minX, maxY, Scale.current);
     }
-
     let timeTaken: number = parseFloat((performance.now() - start).toFixed(2));
     settime(timeTaken);
   };
@@ -106,31 +107,28 @@ export default function Home() {
         context.closePath();
         context.stroke();
       });
-      mapping.current = true;
+      isMap.current = true;
     }
   };
 
   const zoomIn = () => {
-    if (zoomCount.current < 10 && (mapping.current || zoomCount.current !== 0)) {
-      Scale.current *= 1.1;
+    if (zoomCount.current < 10 && isMap.current) {
+      Scale.current += scaleRef.current/10;
+      //Scale.current *= 1.2;
       zoomCount.current += 1;
       MinX.current += 1;
       MaxY.current -= 1;
-    }
-    if (mapping.current) {
       drawMap(fileContent, MinX.current, MaxY.current, Scale.current);
     }
   };
 
   const zoomOut = () => {
-    if (zoomCount.current > -10 && (mapping.current || zoomCount.current !== 0)) {
-      Scale.current *= 0.9;
+    if (zoomCount.current > -10 && isMap.current) {
+      Scale.current -= scaleRef.current/10;
+      //Scale.current *= 0.833;
       zoomCount.current -= 1;
       MinX.current -= 1;
       MaxY.current += 1;
-    }
-
-    if (mapping.current) {
       drawMap(fileContent, MinX.current, MaxY.current, Scale.current);
     }
   };
@@ -161,11 +159,11 @@ export default function Home() {
           </div>
           {selectedFile != undefined ?
             <>
-              <div>Selected File: {selectedFile.name} </div>
-              <div>Total time taken : {time} milliseconds</div>
+              <div>{`Selected File: ${selectedFile.name} `}</div>
+              <div>{`Total time taken : ${time} milliseconds`}</div>
             </>
             : null}
-            
+
           <canvas id="canvas" width="600" height="600" className='border border-black bg-white center mt-5'></canvas>
         </div>
       </div>
