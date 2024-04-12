@@ -72,6 +72,7 @@ export default function Home() {
           });
         }
       });
+
       maxXY = Math.max(maxX - minX, maxY - minY);
       Scale.current = 600 / maxXY;
       MinX.current = minX;
@@ -157,7 +158,6 @@ export default function Home() {
     <div className='h-screen center'>
 
       <div className='h-[800px] w-[800px] p-9 border border-black bg-orange-300 center'>
-
         <div>
           <div className='flex justify-between items-center'>
             <label>
@@ -183,7 +183,6 @@ export default function Home() {
               <div>{`Total time taken : ${time} milliseconds`}</div>
             </>
             : null}
-
           <canvas id="canvas" width="600" height="600" className='border border-black bg-white center mt-5'></canvas>
         </div>
       </div>
