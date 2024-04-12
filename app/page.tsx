@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File>();
@@ -10,8 +10,11 @@ export default function Home() {
   const zoomCount = useRef(0);
   const Scale = useRef(0);
   const MinX = useRef(0);
+  const MaxX = useRef(0);
+  const MinY = useRef(0);
   const MaxY = useRef(0);
-  const scaleRef = useRef(0);
+  const canvasRef = useRef(600);
+  const zoomData = useRef(0);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -71,17 +74,20 @@ export default function Home() {
       });
       maxXY = Math.max(maxX - minX, maxY - minY);
       Scale.current = 600 / maxXY;
-      scaleRef.current = Scale.current;
       MinX.current = minX;
+      MaxX.current = maxX;
+      MinY.current = minY;
       MaxY.current = maxY;
       zoomCount.current = 0;
-      drawMap(wktString, minX, maxY, Scale.current);
+      canvasRef.current = 600;
+      zoomData.current = 0;
+      drawMap(wktString);
     }
     let timeTaken: number = parseFloat((performance.now() - start).toFixed(2));
     settime(timeTaken);
   };
 
-  const drawMap = (wktString: string, minX: any, maxY: any, scaleData: number) => {
+  const drawMap = (wktString: string) => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
     const context = canvas.getContext('2d');
 
@@ -95,8 +101,9 @@ export default function Home() {
           context.beginPath();
           coordinates.forEach((coordinate: string, index: number) => {
             const [x, y] = coordinate.split(' ').map(parseFloat);
-            const scaleX = parseFloat(((x - minX) * scaleData).toFixed(5));
-            const scaleY = parseFloat((((-y + maxY) * scaleData).toFixed(5)))
+            const scaleX = ((x - MinX.current) * Scale.current) + zoomData.current;
+            const scaleY = ((-y + MaxY.current) * Scale.current) + zoomData.current;
+
             if (index === 0) {
               context.moveTo(scaleX, scaleY);
             } else {
@@ -113,23 +120,36 @@ export default function Home() {
 
   const zoomIn = () => {
     if (zoomCount.current < 10 && isMap.current) {
-      Scale.current += scaleRef.current/10;
-      //Scale.current *= 1.2;
-      zoomCount.current += 1;
-      MinX.current += 1;
-      MaxY.current -= 1;
-      drawMap(fileContent, MinX.current, MaxY.current, Scale.current);
+      if (zoomCount.current >= 0) {
+        Scale.current *= 1.2;
+        zoomCount.current += 1;
+        canvasRef.current *= 1.2;
+      }
+      else {
+        Scale.current /= 0.8;
+        zoomCount.current += 1;
+        canvasRef.current /= 0.8;
+      }
+      zoomData.current = (600 - canvasRef.current) / 2
+      drawMap(fileContent);
     }
   };
 
   const zoomOut = () => {
     if (zoomCount.current > -10 && isMap.current) {
-      Scale.current -= scaleRef.current/10;
-      //Scale.current *= 0.833;
-      zoomCount.current -= 1;
-      MinX.current -= 1;
-      MaxY.current += 1;
-      drawMap(fileContent, MinX.current, MaxY.current, Scale.current);
+      if (zoomCount.current <= 0) {
+        Scale.current *= 0.8;
+        zoomCount.current -= 1;
+        canvasRef.current *= 0.8;
+      }
+      else {
+        Scale.current /= 1.2;
+        zoomCount.current -= 1;
+        canvasRef.current /= 1.2;
+      }
+
+      zoomData.current = (600 - canvasRef.current) / 2
+      drawMap(fileContent);
     }
   };
 
