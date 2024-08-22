@@ -168,7 +168,7 @@ export default function Home() {
                 onChange={handleFileChange}
               />
               <div className="HeaderButton flex items-center justify-center border-2 cursor-pointer">
-                <span>Select your WKT now</span>
+                <span>Please Select your WKT</span>
               </div>
             </label>
 
